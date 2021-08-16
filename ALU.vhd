@@ -7,8 +7,6 @@ use IEEE.std_logic_1164.all;
 -----------------------------------
 entity ALU is 
 port (
-
-	vector8 : in std_logic_vector(7 downto 0);
 	X, Y : in std_logic_vector(3 downto 0);
 	Sel : in std_logic_vector(2 downto 0);
 	Z : buffer std_logic_vector(3 downto 0);
@@ -97,10 +95,11 @@ end component;
 	signal res_xor: std_logic_vector(3 downto 0);
 	signal res_not: std_logic_vector(3 downto 0);
 	signal res_preset : std_logic_vector(3 downto 0);
+	signal Cout_internal : std_logic;
 
 begin
 	
-	opAddSub: addSub4bits port map(A => X, Bin => Y, CIN =>Sel(1), S=>res_addSub, COUT=> Cout);
+	opAddSub: addSub4bits port map(A => X, Bin => Y, CIN =>Sel(1), S=>res_addSub, COUT=> Cout_internal);
 	opAnd: and4bits port map(a=>X, b=>Y, s=>res_and);
 	opOr: or4bits port map(a=>X, b=>Y, s=>res_or);
 	opXor: xor4bits port map(a=>X, b=>Y, s=>res_xor);
@@ -119,7 +118,7 @@ begin
 				a(5) => res_xor(i),
 				a(6) => res_not(i),
 				a(7) => res_preset(i),
-				s=>Sel,'
+				s=>Sel,
 				o=>Z(i)
 			);
 	end generate;
@@ -127,8 +126,10 @@ begin
 	res_reset <= "0000";
 	res_preset <= "1111";
 	
-	ZERO <= Z(0) or Z(1) or Z(2) or Z(3);
-	NEG <=  (not Sel(2)) and Sel(1) and (not Sel(0)) and (not Cout);
-	OVR <= Cout; --Dúvida: é realmente isso?? Por que são flags diferentes então?
+	-- Cout, NEG, e OVR não possuem sentido explicito quando as operações são diferentes de Adição e subtração.
+	Cout <= Cout_internal and (((not Z(2)) and (not Z(1)) and Z(0)) or ((not Z(2)) and Z(1) and (not Z(0)))); 
+	ZERO <= not (Z(0) or Z(1) or Z(2) or Z(3)); 		
+	NEG <= (not Cout) and (not Sel(2)) and Sel(1) and (not Sel(0)); -- O número apenas é negativo em caso de subtração, logo a condição é Cout=0 E S=010.
+	OVR <= Cout and ( (not Sel(2)) and (not Sel(1)) and Sel(0) ) ; -- Overflow só existe em caso de soma na minha ALU, logo há OVR quando há Cout=1 E S=001.
 	
 end architecture;

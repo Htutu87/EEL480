@@ -4,7 +4,7 @@ use IEEE.std_logic_1164.all;
 
 entity xor4bits is
 
-port (
+port ( 
 	a, b : in std_logic_vector(3 downto 0);
 	s : out std_logic_vector(3 downto 0)
 );
